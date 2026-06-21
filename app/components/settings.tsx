@@ -8,9 +8,11 @@ import CopyIcon from "../icons/copy.svg";
 import ClearIcon from "../icons/clear.svg";
 import EditIcon from "../icons/edit.svg";
 import EyeIcon from "../icons/eye.svg";
+import UploadIcon from "../icons/add.svg";
 
 import { Input, List, ListItem, Modal, Select, showConfirm } from "./ui-lib";
 import { ModelConfigList } from "./model-config";
+import CustomModelUploader from "./custom-model-uploader";
 
 import { IconButton } from "./button";
 import {
@@ -36,6 +38,7 @@ import { useNavigate } from "react-router-dom";
 import { nanoid } from "nanoid";
 import { LogLevel } from "@mlc-ai/web-llm";
 import { WebLLMContext } from "../context";
+import { ModelRecord } from "../client/api";
 
 function EditPromptModal(props: { id: string; onClose: () => void }) {
   const promptStore = usePromptStore();
@@ -239,6 +242,8 @@ export function Settings() {
   const builtinCount = SearchService.count.builtin;
   const customCount = promptStore.getUserPrompts().length ?? 0;
   const [shouldShowPromptModal, setShowPromptModal] = useState(false);
+  const [shouldShowCustomModelUploader, setShowCustomModelUploader] =
+    useState(false);
 
   useEffect(() => {
     const keydownEvent = (e: KeyboardEvent) => {
@@ -252,6 +257,13 @@ export function Settings() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleCustomModelAdded = (model: ModelRecord) => {
+    // Add the custom model to the models list
+    const updatedModels = [...config.models, model];
+    config.setModels(updatedModels);
+    setShowCustomModelUploader(false);
+  };
 
   return (
     <ErrorBoundary>
@@ -385,7 +397,8 @@ export function Settings() {
               value={config.theme}
               onChange={(e) => {
                 updateConfig(
-                  (config) => (config.theme = e.target.value as any as Theme),
+                  (config) =>
+                    (config.theme = e.target.value as any as Theme),
                 );
               }}
             >
@@ -516,11 +529,21 @@ export function Settings() {
 
         <List id={SlotID.CustomModel}>
           <ListItem
+            title="Custom Models"
+            subTitle="Upload and manage custom AI models"
+          >
+            <IconButton
+              icon={<UploadIcon />}
+              text="Upload Model"
+              onClick={() => setShowCustomModelUploader(true)}
+            />
+          </ListItem>
+          <ListItem
             title={Locale.Settings.CacheType.Title}
             subTitle={Locale.Settings.CacheType.SubTitle}
           >
             <Select
-              value="cache"
+              value={config.cacheType}
               onChange={(e) => {
                 updateConfig(
                   (config) =>
@@ -562,6 +585,13 @@ export function Settings() {
 
         {shouldShowPromptModal && (
           <UserPromptModal onClose={() => setShowPromptModal(false)} />
+        )}
+
+        {shouldShowCustomModelUploader && (
+          <CustomModelUploader
+            onClose={() => setShowCustomModelUploader(false)}
+            onModelAdded={handleCustomModelAdded}
+          />
         )}
 
         <DangerItems />
